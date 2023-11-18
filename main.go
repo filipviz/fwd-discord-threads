@@ -31,7 +31,7 @@ type DestChannels struct {
 
 type DestChannel struct {
 	ChannelID string   `json:"channelId"`
-	VoterIDs  []string `json:"voterIds"`
+	UserIDs   []string `json:"userIds"`
 }
 
 func main() {
@@ -104,9 +104,9 @@ func handleThreadCreate(s *discordgo.Session, m *discordgo.ThreadCreate) {
 func notifyDestinations(s *discordgo.Session, msg string) {
 	for _, destGuild := range config.Destinations {
 		for _, destChannel := range destGuild.Channels {
-			tags := make([]string, len(destChannel.VoterIDs))
-			for _, voterId := range destChannel.VoterIDs {
-				tags = append(tags, fmt.Sprintf("<@%s>", voterId))
+			tags := make([]string, len(destChannel.UserIDs))
+			for _, userId := range destChannel.UserIDs {
+				tags = append(tags, fmt.Sprintf("<@%s>", userId))
 			}
 			msg = msg + " " + strings.Join(tags, "")
 
