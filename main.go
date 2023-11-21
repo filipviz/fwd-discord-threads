@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
@@ -93,7 +92,7 @@ func handleThreadCreate(s *discordgo.Session, m *discordgo.ThreadCreate) {
 		if m.GuildID == source.GuildID {
 			for _, channelId := range source.ChannelIDs {
 				if channelId == m.ParentID {
-					msg := fmt.Sprintf("New thread: *[%s](https://discord.com/channels/%s/%s/%s)*", m.Name, m.GuildID, m.Channel.ID, m.ID)
+					msg := fmt.Sprintf("New bug reported: [%s](https://discord.com/channels/%s/%s/%s)", m.Name, m.GuildID, m.Channel.ID, m.ID)
 					notifyDestinations(s, msg)
 				}
 			}
@@ -104,15 +103,28 @@ func handleThreadCreate(s *discordgo.Session, m *discordgo.ThreadCreate) {
 func notifyDestinations(s *discordgo.Session, msg string) {
 	for _, destGuild := range config.Destinations {
 		for _, destChannel := range destGuild.Channels {
-			tags := make([]string, len(destChannel.UserIDs))
-			for _, userId := range destChannel.UserIDs {
-				tags = append(tags, fmt.Sprintf("<@%s>", userId))
-			}
-			msg = msg + " " + strings.Join(tags, "")
+			// For now, disable tags.
+			// tags := make([]string, len(destChannel.UserIDs))
+			// for _, userId := range destChannel.UserIDs {
+			// 	tags = append(tags, fmt.Sprintf("<@%s>", userId))
+			// }
+			// msg = msg + " " + strings.Join(tags, "")
 
-			_, err := s.ChannelMessageSend(destChannel.ChannelID, msg)
+			sent, err := s.ChannelMessageSend(destChannel.ChannelID, msg)
 			if err != nil {
 				fmt.Printf("Could not message channel %v: %v\n", destChannel.ChannelID, err)
+				return
+			}
+
+			// Remove link embeds
+			_, err = s.ChannelMessageEditComplex(&discordgo.MessageEdit{
+				ID:      sent.ID,
+				Channel: destChannel.ChannelID,
+				Content: &msg,
+				Flags:   discordgo.MessageFlagsSuppressEmbeds,
+			})
+			if err != nil {
+				fmt.Printf("Could not edit message %s in channel %s: %v\n", sent.ID, destChannel.ChannelID, err)
 			}
 		}
 	}
